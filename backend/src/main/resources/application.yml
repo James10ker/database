@@ -6,9 +6,9 @@ spring:
     name: campus-activity-backend
   datasource:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    url: ${DB_URL:jdbc:sqlserver://localhost\SQLEXPRESS;databaseName=campus_activity;encrypt=true;trustServerCertificate=true}
-    username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:YourStrong!Passw0rd}
+    url: ${DB_URL:jdbc:sqlserver://localhost:57961;databaseName=campus_activity;encrypt=true;trustServerCertificate=true;integratedSecurity=true}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
 
 mybatis-plus:
   configuration:

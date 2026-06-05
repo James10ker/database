@@ -1,7 +1,11 @@
 :root {
-  color: #1f2937;
-  background: #f6f7fb;
+  color: #0f172a;
+  background: #f3f6fb;
   font-family: Inter, "Microsoft YaHei", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -9,7 +13,7 @@ body {
 }
 
 .page {
-  padding: 20px;
+  padding: 24px;
 }
 
 .page-header {
@@ -20,40 +24,75 @@ body {
   margin-bottom: 16px;
 }
 
+.page-header h2 {
+  color: #0f172a;
+  font-size: 22px;
+  margin: 0;
+}
+
 .panel {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 16px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+  padding: 18px;
 }
 
 .toolbar {
   align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
+  padding: 12px;
 }
 
 .muted {
-  color: #6b7280;
+  color: #64748b;
 }
 
 .metric-grid {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .metric {
-  background: #f9fafb;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 14px;
+  color: #64748b;
+  padding: 16px;
 }
 
 .metric strong {
+  color: #0f172a;
   display: block;
-  font-size: 24px;
+  font-size: 26px;
   margin-top: 6px;
+}
+
+.el-table {
+  --el-table-header-bg-color: #f8fafc;
+  --el-table-header-text-color: #334155;
+  --el-table-row-hover-bg-color: #f8fbff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.el-button {
+  border-radius: 8px;
+}
+
+.el-input__wrapper,
+.el-textarea__inner,
+.el-input-number .el-input__wrapper {
+  border-radius: 8px;
+}
+
+.el-descriptions {
+  --el-border-radius-base: 8px;
 }

@@ -15,22 +15,16 @@
 sqlcmd -S .\SQLEXPRESS -E -i .\sql\init.sql
 ```
 
-2. 根据本机 SQL Server 登录方式配置后端连接。
-
-```powershell
-$env:DB_URL='jdbc:sqlserver://localhost\SQLEXPRESS;databaseName=campus_activity;encrypt=true;trustServerCertificate=true'
-$env:DB_USERNAME='sa'
-$env:DB_PASSWORD='YourStrong!Passw0rd'
-```
-
-3. 启动后端：
+2. 启动后端：
 
 ```powershell
 cd backend
-mvn spring-boot:run
+.\start.ps1
 ```
 
-4. 启动前端：
+`start.ps1` 会自动读取本机 `SQLEXPRESS` 动态 TCP 端口，并使用 `backend/auth/` 下的 SQL Server Windows 集成认证 DLL。若你改为 SQL Server 账号密码登录，可通过 `DB_URL / DB_USERNAME / DB_PASSWORD` 覆盖配置。
+
+3. 启动前端：
 
 ```powershell
 cd frontend

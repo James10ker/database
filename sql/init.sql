@@ -118,33 +118,33 @@ CREATE TABLE rating (
 GO
 
 INSERT INTO student (student_no, password, student_name, college, major, grade, phone, email, interest_tags) VALUES
-('2026001', '123456', N'王熙泽', N'计算机学院', N'软件工程', N'2023', '13800000001', '2026001@example.com', N'讲座,竞赛'),
-('2026002', '123456', N'蓝莹', N'管理学院', N'信息管理', N'2023', '13800000002', '2026002@example.com', N'志愿,文艺'),
-('2026003', '123456', N'唐瑀含', N'艺术学院', N'视觉传达', N'2024', '13800000003', '2026003@example.com', N'文艺,讲座'),
-('2026004', '123456', N'何佳倩', N'外国语学院', N'英语', N'2024', '13800000004', '2026004@example.com', N'志愿,体育'),
-('2026005', '123456', N'陈同学', N'计算机学院', N'数据科学', N'2025', '13800000005', '2026005@example.com', N'竞赛,体育');
+('2026001', '123456', N'Wang Xize', N'Computer College', N'Software Engineering', N'2023', '13800000001', '2026001@example.com', N'lecture,competition'),
+('2026002', '123456', N'Lan Ying', N'Management College', N'Information Management', N'2023', '13800000002', '2026002@example.com', N'volunteer,art'),
+('2026003', '123456', N'Tang Yuhan', N'Art College', N'Visual Design', N'2024', '13800000003', '2026003@example.com', N'art,lecture'),
+('2026004', '123456', N'He Jiaqian', N'Foreign Language College', N'English', N'2024', '13800000004', '2026004@example.com', N'volunteer,sports'),
+('2026005', '123456', N'Chen Student', N'Computer College', N'Data Science', N'2025', '13800000005', '2026005@example.com', N'competition,sports');
 
 INSERT INTO organizer (organizer_no, password, organizer_name, organizer_type, contact_name, contact_phone) VALUES
-('org001', '123456', N'校学生会', N'校级组织', N'李老师', '13900000001'),
-('org002', '123456', N'计算机协会', N'社团', N'周同学', '13900000002');
+('org001', '123456', N'Student Union', N'University Organization', N'Teacher Li', '13900000001'),
+('org002', '123456', N'Computer Association', N'Club', N'Student Zhou', '13900000002');
 
 INSERT INTO admin_user (username, password, admin_name) VALUES
-('admin', '123456', N'系统管理员');
+('admin', '123456', N'System Admin');
 
 INSERT INTO activity (activity_title, category, description, organizer_id, location, start_time, end_time, register_start_time, register_end_time, capacity, activity_status, audit_status, checkin_code) VALUES
-(N'校园科技创新讲座', N'讲座', N'邀请企业工程师分享 AI 应用实践。', 2, N'图书馆报告厅',
+(N'Campus Tech Innovation Lecture', N'lecture', N'Engineers share AI application practice.', 2, N'Library Hall',
  DATEADD(DAY, 5, SYSDATETIME()), DATEADD(HOUR, 2, DATEADD(DAY, 5, SYSDATETIME())),
  DATEADD(DAY, -1, SYSDATETIME()), DATEADD(DAY, 4, SYSDATETIME()), 80, 'published', 'approved', NULL),
-(N'春季志愿服务行动', N'志愿', N'校园周边志愿清洁与服务活动。', 1, N'学校东门',
+(N'Spring Volunteer Service', N'volunteer', N'Volunteer service around campus.', 1, N'East Gate',
  DATEADD(DAY, 7, SYSDATETIME()), DATEADD(HOUR, 3, DATEADD(DAY, 7, SYSDATETIME())),
  DATEADD(DAY, -1, SYSDATETIME()), DATEADD(DAY, 6, SYSDATETIME()), 50, 'published', 'approved', NULL),
-(N'篮球友谊赛', N'体育', N'学院间篮球友谊赛。', 1, N'体育馆',
+(N'Basketball Friendly Match', N'sports', N'Basketball match between colleges.', 1, N'Gym',
  DATEADD(DAY, 10, SYSDATETIME()), DATEADD(HOUR, 2, DATEADD(DAY, 10, SYSDATETIME())),
  DATEADD(DAY, -1, SYSDATETIME()), DATEADD(DAY, 9, SYSDATETIME()), 30, 'published', 'approved', NULL),
-(N'数据库设计竞赛', N'竞赛', N'围绕课程设计进行数据库建模竞赛。', 2, N'实验楼 A305',
+(N'Database Design Competition', N'competition', N'Database modeling competition for course design.', 2, N'Lab A305',
  DATEADD(DAY, 12, SYSDATETIME()), DATEADD(HOUR, 4, DATEADD(DAY, 12, SYSDATETIME())),
  DATEADD(DAY, -1, SYSDATETIME()), DATEADD(DAY, 11, SYSDATETIME()), 40, 'published', 'approved', NULL),
-(N'毕业季音乐会', N'文艺', N'面向全校的毕业季文艺演出。', 1, N'大礼堂',
+(N'Graduation Music Concert', N'art', N'Graduation season performance for the whole school.', 1, N'Auditorium',
  DATEADD(DAY, -2, SYSDATETIME()), DATEADD(HOUR, 2, DATEADD(DAY, -2, SYSDATETIME())),
  DATEADD(DAY, -10, SYSDATETIME()), DATEADD(DAY, -3, SYSDATETIME()), 200, 'ended', 'approved', '888888');
 
@@ -156,9 +156,9 @@ INSERT INTO registration (activity_id, student_id, registration_time, registrati
 
 INSERT INTO checkin (registration_id, activity_id, student_id, checkin_time, checkin_method, checkin_status, remark) VALUES
 (3, 5, 1, DATEADD(DAY, -2, SYSDATETIME()), 'code', 'checked_in', NULL),
-(4, 5, 3, DATEADD(DAY, -2, SYSDATETIME()), 'manual', 'manual_checked_in', N'现场名单补签');
+(4, 5, 3, DATEADD(DAY, -2, SYSDATETIME()), 'manual', 'manual_checked_in', N'Manual checkin from onsite list');
 
 INSERT INTO rating (activity_id, student_id, checkin_id, score, comment, rating_time) VALUES
-(5, 1, 1, 5, N'活动组织很好，现场效果不错。', DATEADD(DAY, -1, SYSDATETIME())),
-(5, 3, 2, 4, N'节目丰富，希望下次座位引导更清晰。', DATEADD(DAY, -1, SYSDATETIME()));
+(5, 1, 1, 5, N'Well organized and useful.', DATEADD(DAY, -1, SYSDATETIME())),
+(5, 3, 2, 4, N'Good event. Seat guidance can be clearer.', DATEADD(DAY, -1, SYSDATETIME()));
 GO
