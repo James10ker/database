@@ -7,6 +7,12 @@ GO
 USE campus_activity;
 GO
 
+IF OBJECT_ID(N'usp_activity_statistics', N'P') IS NOT NULL DROP PROCEDURE usp_activity_statistics;
+IF OBJECT_ID(N'usp_register_activity', N'P') IS NOT NULL DROP PROCEDURE usp_register_activity;
+IF OBJECT_ID(N'vw_student_participation', N'V') IS NOT NULL DROP VIEW vw_student_participation;
+IF OBJECT_ID(N'vw_activity_summary', N'V') IS NOT NULL DROP VIEW vw_activity_summary;
+GO
+
 IF OBJECT_ID(N'rating', N'U') IS NOT NULL DROP TABLE rating;
 IF OBJECT_ID(N'checkin', N'U') IS NOT NULL DROP TABLE checkin;
 IF OBJECT_ID(N'registration', N'U') IS NOT NULL DROP TABLE registration;
@@ -117,6 +123,25 @@ CREATE TABLE rating (
 );
 GO
 
+CREATE INDEX ix_activity_status_time
+ON activity (audit_status, activity_status, register_end_time, start_time);
+
+CREATE INDEX ix_activity_organizer_time
+ON activity (organizer_id, start_time);
+
+CREATE INDEX ix_registration_activity_status
+ON registration (activity_id, registration_status);
+
+CREATE INDEX ix_registration_student_status
+ON registration (student_id, registration_status);
+
+CREATE INDEX ix_checkin_activity_student
+ON checkin (activity_id, student_id);
+
+CREATE INDEX ix_rating_activity_score
+ON rating (activity_id, score);
+GO
+
 INSERT INTO student (student_no, password, student_name, college, major, grade, phone, email, interest_tags) VALUES
 ('2026001', '123456', N'Wang Xize', N'Computer College', N'Software Engineering', N'2023', '13800000001', '2026001@example.com', N'lecture,competition'),
 ('2026002', '123456', N'Lan Ying', N'Management College', N'Information Management', N'2023', '13800000002', '2026002@example.com', N'volunteer,art'),
@@ -161,4 +186,154 @@ INSERT INTO checkin (registration_id, activity_id, student_id, checkin_time, che
 INSERT INTO rating (activity_id, student_id, checkin_id, score, comment, rating_time) VALUES
 (5, 1, 1, 5, N'Well organized and useful.', DATEADD(DAY, -1, SYSDATETIME())),
 (5, 3, 2, 4, N'Good event. Seat guidance can be clearer.', DATEADD(DAY, -1, SYSDATETIME()));
+GO
+
+CREATE VIEW vw_activity_summary AS
+SELECT
+    a.activity_id,
+    a.activity_title,
+    a.category,
+    a.location,
+    a.start_time,
+    a.end_time,
+    a.capacity,
+    a.activity_status,
+    a.audit_status,
+    o.organizer_name,
+    COUNT(DISTINCT CASE WHEN r.registration_status = 'registered' THEN r.registration_id END) AS registration_count,
+    COUNT(DISTINCT c.checkin_id) AS checkin_count,
+    CAST(
+        CASE
+            WHEN COUNT(DISTINCT CASE WHEN r.registration_status = 'registered' THEN r.registration_id END) = 0 THEN 0
+            ELSE COUNT(DISTINCT c.checkin_id) * 100.0 /
+                 COUNT(DISTINCT CASE WHEN r.registration_status = 'registered' THEN r.registration_id END)
+        END AS DECIMAL(6,2)
+    ) AS checkin_rate,
+    CAST(ISNULL(AVG(CAST(rt.score AS DECIMAL(6,2))), 0) AS DECIMAL(6,2)) AS average_score
+FROM activity a
+JOIN organizer o ON a.organizer_id = o.organizer_id
+LEFT JOIN registration r ON a.activity_id = r.activity_id
+LEFT JOIN checkin c ON a.activity_id = c.activity_id
+LEFT JOIN rating rt ON a.activity_id = rt.activity_id
+GROUP BY
+    a.activity_id, a.activity_title, a.category, a.location, a.start_time, a.end_time,
+    a.capacity, a.activity_status, a.audit_status, o.organizer_name;
+GO
+
+CREATE VIEW vw_student_participation AS
+SELECT
+    s.student_id,
+    s.student_no,
+    s.student_name,
+    a.activity_id,
+    a.activity_title,
+    a.category,
+    r.registration_status,
+    r.registration_time,
+    c.checkin_status,
+    c.checkin_time,
+    rt.score,
+    rt.comment
+FROM student s
+JOIN registration r ON s.student_id = r.student_id
+JOIN activity a ON r.activity_id = a.activity_id
+LEFT JOIN checkin c ON r.registration_id = c.registration_id
+LEFT JOIN rating rt ON c.checkin_id = rt.checkin_id;
+GO
+
+CREATE PROCEDURE usp_activity_statistics
+    @activity_id BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        activity_id,
+        activity_title,
+        registration_count,
+        checkin_count,
+        checkin_rate,
+        average_score
+    FROM vw_activity_summary
+    WHERE activity_id = @activity_id;
+END;
+GO
+
+CREATE PROCEDURE usp_register_activity
+    @student_id BIGINT,
+    @activity_id BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @now DATETIME2 = SYSDATETIME();
+    DECLARE @capacity INT;
+    DECLARE @registered_count INT;
+
+    IF NOT EXISTS (SELECT 1 FROM student WHERE student_id = @student_id AND account_status = 'enabled')
+    BEGIN
+        THROW 50001, 'Student account is unavailable.', 1;
+    END;
+
+    SELECT @capacity = capacity
+    FROM activity
+    WHERE activity_id = @activity_id
+      AND activity_status = 'published'
+      AND audit_status = 'approved'
+      AND @now BETWEEN register_start_time AND register_end_time;
+
+    IF @capacity IS NULL
+    BEGIN
+        THROW 50002, 'Activity is not available for registration.', 1;
+    END;
+
+    SELECT @registered_count = COUNT(*)
+    FROM registration
+    WHERE activity_id = @activity_id AND registration_status = 'registered';
+
+    IF @registered_count >= @capacity
+    BEGIN
+        THROW 50003, 'Activity capacity is full.', 1;
+    END;
+
+    IF EXISTS (
+        SELECT 1 FROM registration
+        WHERE student_id = @student_id
+          AND activity_id = @activity_id
+          AND registration_status = 'registered'
+    )
+    BEGIN
+        THROW 50004, 'Student already registered this activity.', 1;
+    END;
+
+    INSERT INTO registration (activity_id, student_id, registration_time, registration_status)
+    VALUES (@activity_id, @student_id, @now, 'registered');
+
+    SELECT SCOPE_IDENTITY() AS registration_id;
+END;
+GO
+
+CREATE TRIGGER tr_registration_capacity_guard
+ON registration
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM activity a
+        JOIN (
+            SELECT activity_id, COUNT(*) AS registered_count
+            FROM registration
+            WHERE registration_status = 'registered'
+            GROUP BY activity_id
+        ) x ON a.activity_id = x.activity_id
+        WHERE x.registered_count > a.capacity
+    )
+    BEGIN
+        ROLLBACK TRANSACTION;
+        THROW 50005, 'Registration count cannot exceed activity capacity.', 1;
+    END;
+END;
 GO
