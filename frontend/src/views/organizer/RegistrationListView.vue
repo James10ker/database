@@ -7,9 +7,15 @@
     <div class="panel">
       <el-table :data="rows">
         <el-table-column prop="registrationId" label="报名编号" width="110" />
-        <el-table-column prop="studentId" label="学生编号" width="110" />
+        <el-table-column prop="studentNo" label="学号" width="130" />
+        <el-table-column prop="studentName" label="姓名" width="130" />
+        <el-table-column prop="activityTitle" label="活动名称" min-width="220" />
         <el-table-column prop="registrationTime" label="报名时间" min-width="180" />
-        <el-table-column prop="registrationStatus" label="状态" width="120" />
+        <el-table-column label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="row.registrationStatus === 'registered' ? 'success' : 'info'">{{ row.statusText }}</el-tag>
+          </template>
+        </el-table-column>
       </el-table>
     </div>
   </section>

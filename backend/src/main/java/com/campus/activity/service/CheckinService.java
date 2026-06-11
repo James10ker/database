@@ -38,6 +38,9 @@ public class CheckinService {
         if (activity.getCheckinCode() == null || !activity.getCheckinCode().equals(code)) {
             throw new BusinessException("签到码错误");
         }
+        if (!activityService.isCheckinOpen(activity, LocalDateTime.now())) {
+            throw new BusinessException("当前不在签到时间范围内");
+        }
         Registration registration = registrationMapper.selectOne(new LambdaQueryWrapper<Registration>()
                 .eq(Registration::getActivityId, activityId)
                 .eq(Registration::getStudentId, user.getId())

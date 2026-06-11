@@ -5,6 +5,7 @@ import com.campus.activity.dto.RegistrationRequest;
 import com.campus.activity.entity.Registration;
 import com.campus.activity.service.AuthService;
 import com.campus.activity.service.RegistrationService;
+import com.campus.activity.vo.RegistrationVO;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -37,14 +38,14 @@ public class RegistrationController {
     }
 
     @GetMapping("/api/registrations/mine")
-    public ApiResponse<List<Registration>> mine(@RequestHeader("Authorization") String token) {
+    public ApiResponse<List<RegistrationVO>> mine(@RequestHeader("Authorization") String token) {
         return ApiResponse.ok(registrationService.mine(authService.current(token)));
     }
 
     @GetMapping("/api/activities/{id}/registrations")
-    public ApiResponse<List<Registration>> listByActivity(@PathVariable Long id,
-                                                          @RequestParam(required = false) String status,
-                                                          @RequestHeader("Authorization") String token) {
+    public ApiResponse<List<RegistrationVO>> listByActivity(@PathVariable Long id,
+                                                            @RequestParam(required = false) String status,
+                                                            @RequestHeader("Authorization") String token) {
         return ApiResponse.ok(registrationService.listByActivity(id, status, authService.current(token)));
     }
 }

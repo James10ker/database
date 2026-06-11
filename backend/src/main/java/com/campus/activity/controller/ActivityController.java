@@ -4,6 +4,7 @@ import com.campus.activity.common.ApiResponse;
 import com.campus.activity.entity.Activity;
 import com.campus.activity.service.ActivityService;
 import com.campus.activity.service.AuthService;
+import com.campus.activity.vo.ActivityVO;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,16 +25,16 @@ public class ActivityController {
     private final AuthService authService;
 
     @GetMapping
-    public ApiResponse<List<Activity>> list(@RequestParam(required = false) String keyword,
-                                            @RequestParam(required = false) String category,
-                                            @RequestParam(required = false) String status,
-                                            @RequestParam(required = false) Long organizerId) {
+    public ApiResponse<List<ActivityVO>> list(@RequestParam(required = false) String keyword,
+                                              @RequestParam(required = false) String category,
+                                              @RequestParam(required = false) String status,
+                                              @RequestParam(required = false) Long organizerId) {
         return ApiResponse.ok(activityService.list(keyword, category, status, organizerId));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<Activity> detail(@PathVariable Long id) {
-        return ApiResponse.ok(activityService.detail(id));
+    public ApiResponse<ActivityVO> detail(@PathVariable Long id) {
+        return ApiResponse.ok(activityService.detailVO(id));
     }
 
     @PostMapping

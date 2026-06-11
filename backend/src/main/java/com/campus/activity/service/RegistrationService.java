@@ -5,8 +5,11 @@ import com.campus.activity.common.AuthUser;
 import com.campus.activity.common.BusinessException;
 import com.campus.activity.entity.Activity;
 import com.campus.activity.entity.Registration;
+import com.campus.activity.entity.Student;
 import com.campus.activity.mapper.ActivityMapper;
 import com.campus.activity.mapper.RegistrationMapper;
+import com.campus.activity.mapper.StudentMapper;
+import com.campus.activity.vo.RegistrationVO;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,17 +20,15 @@ import org.springframework.stereotype.Service;
 public class RegistrationService {
     private final RegistrationMapper registrationMapper;
     private final ActivityMapper activityMapper;
+    private final StudentMapper studentMapper;
     private final ActivityService activityService;
 
     public Registration register(Long activityId, AuthUser user) {
         activityService.requireRole(user, "student");
         Activity activity = activityService.detail(activityId);
         LocalDateTime now = LocalDateTime.now();
-        if ("cancelled".equals(activity.getActivityStatus()) || "ended".equals(activity.getActivityStatus())) {
-            throw new BusinessException("该活动不可报名");
-        }
-        if (now.isBefore(activity.getRegisterStartTime()) || now.isAfter(activity.getRegisterEndTime())) {
-            throw new BusinessException("当前不在报名时间范围内");
+        if (!activityService.isRegistrationOpen(activity, now)) {
+            throw new BusinessException("当前活动不在可报名时间范围内");
         }
         long count = registrationMapper.selectCount(new LambdaQueryWrapper<Registration>()
                 .eq(Registration::getActivityId, activityId)
@@ -74,20 +75,40 @@ public class RegistrationService {
         return registration;
     }
 
-    public List<Registration> mine(AuthUser user) {
+    public List<RegistrationVO> mine(AuthUser user) {
         activityService.requireRole(user, "student");
         return registrationMapper.selectList(new LambdaQueryWrapper<Registration>()
-                .eq(Registration::getStudentId, user.getId())
-                .orderByDesc(Registration::getRegistrationTime));
+                        .eq(Registration::getStudentId, user.getId())
+                        .orderByDesc(Registration::getRegistrationTime))
+                .stream()
+                .map(this::toVO)
+                .toList();
     }
 
-    public List<Registration> listByActivity(Long activityId, String status, AuthUser user) {
+    public List<RegistrationVO> listByActivity(Long activityId, String status, AuthUser user) {
         Activity activity = activityService.detail(activityId);
         activityService.assertOrganizerOwner(activity, user);
         return registrationMapper.selectList(new LambdaQueryWrapper<Registration>()
-                .eq(Registration::getActivityId, activityId)
-                .eq(status != null && !status.isBlank(), Registration::getRegistrationStatus, status)
-                .orderByDesc(Registration::getRegistrationTime));
+                        .eq(Registration::getActivityId, activityId)
+                        .eq(status != null && !status.isBlank(), Registration::getRegistrationStatus, status)
+                        .orderByDesc(Registration::getRegistrationTime))
+                .stream()
+                .map(this::toVO)
+                .toList();
+    }
+
+    private RegistrationVO toVO(Registration registration) {
+        RegistrationVO vo = RegistrationVO.from(registration);
+        Activity activity = activityMapper.selectById(registration.getActivityId());
+        if (activity != null) {
+            vo.setActivityTitle(activity.getActivityTitle());
+        }
+        Student student = studentMapper.selectById(registration.getStudentId());
+        if (student != null) {
+            vo.setStudentNo(student.getStudentNo());
+            vo.setStudentName(student.getStudentName());
+        }
+        return vo;
     }
 
     private boolean hasTimeConflict(Long studentId, Activity target) {

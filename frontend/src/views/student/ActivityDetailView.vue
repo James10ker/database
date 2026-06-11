@@ -1,22 +1,24 @@
 <template>
   <section class="page">
     <div class="page-header">
-      <h2>{{ activity?.activityTitle }}</h2>
+      <h2>{{ activity?.activityTitle || '活动详情' }}</h2>
       <el-button @click="$router.back()">返回</el-button>
     </div>
     <div class="panel" v-if="activity">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="类别">{{ activity.category }}</el-descriptions-item>
+        <el-descriptions-item label="组织者">{{ activity.organizerName }}</el-descriptions-item>
         <el-descriptions-item label="地点">{{ activity.location }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ activity.statusText }}</el-descriptions-item>
         <el-descriptions-item label="开始时间">{{ activity.startTime }}</el-descriptions-item>
         <el-descriptions-item label="结束时间">{{ activity.endTime }}</el-descriptions-item>
         <el-descriptions-item label="报名开始">{{ activity.registerStartTime }}</el-descriptions-item>
         <el-descriptions-item label="报名截止">{{ activity.registerEndTime }}</el-descriptions-item>
         <el-descriptions-item label="人数上限">{{ activity.capacity }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ activity.activityStatus }}</el-descriptions-item>
+        <el-descriptions-item label="剩余名额">{{ activity.remainingCapacity }}</el-descriptions-item>
       </el-descriptions>
       <p>{{ activity.description }}</p>
-      <el-button type="primary" @click="register">报名该活动</el-button>
+      <el-button type="primary" :disabled="activity.activityStatus !== 'registering'" @click="register">报名该活动</el-button>
     </div>
   </section>
 </template>
@@ -37,6 +39,7 @@ async function load() {
 async function register() {
   await registerActivity(activity.value.activityId)
   ElMessage.success('报名成功')
+  load()
 }
 
 onMounted(load)

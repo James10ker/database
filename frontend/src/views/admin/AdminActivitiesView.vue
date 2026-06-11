@@ -7,9 +7,14 @@
     <div class="panel">
       <el-table :data="rows">
         <el-table-column prop="activityId" label="编号" width="80" />
-        <el-table-column prop="activityTitle" label="活动名称" min-width="180" />
-        <el-table-column prop="activityStatus" label="状态" width="110" />
-        <el-table-column prop="auditStatus" label="审核状态" width="120" />
+        <el-table-column prop="activityTitle" label="活动名称" min-width="190" />
+        <el-table-column prop="organizerName" label="组织者" min-width="140" />
+        <el-table-column label="状态" width="120">
+          <template #default="{ row }"><el-tag>{{ row.statusText }}</el-tag></template>
+        </el-table-column>
+        <el-table-column label="审核状态" width="120">
+          <template #default="{ row }"><el-tag type="info">{{ row.auditText }}</el-tag></template>
+        </el-table-column>
         <el-table-column label="操作" width="180">
           <template #default="{ row }">
             <el-button size="small" type="success" @click="audit(row.activityId, 'approved')">通过</el-button>

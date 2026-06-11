@@ -7,11 +7,18 @@
     <div class="panel">
       <el-table :data="rows">
         <el-table-column prop="activityId" label="编号" width="80" />
-        <el-table-column prop="activityTitle" label="活动名称" min-width="180" />
-        <el-table-column prop="category" label="类别" width="100" />
-        <el-table-column prop="activityStatus" label="状态" width="110" />
-        <el-table-column prop="auditStatus" label="审核" width="110" />
-        <el-table-column label="操作" width="360">
+        <el-table-column prop="activityTitle" label="活动名称" min-width="190" />
+        <el-table-column prop="category" label="类别" width="110" />
+        <el-table-column label="报名人数" width="110">
+          <template #default="{ row }">{{ row.registrationCount }}/{{ row.capacity }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="120">
+          <template #default="{ row }"><el-tag>{{ row.statusText }}</el-tag></template>
+        </el-table-column>
+        <el-table-column label="审核" width="120">
+          <template #default="{ row }"><el-tag type="info">{{ row.auditText }}</el-tag></template>
+        </el-table-column>
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="$router.push(`/organizer/activities/${row.activityId}/edit`)">编辑</el-button>
             <el-button size="small" type="success" @click="publish(row.activityId)">发布</el-button>

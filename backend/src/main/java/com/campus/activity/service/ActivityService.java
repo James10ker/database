@@ -4,7 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.campus.activity.common.AuthUser;
 import com.campus.activity.common.BusinessException;
 import com.campus.activity.entity.Activity;
+import com.campus.activity.entity.Organizer;
+import com.campus.activity.entity.Registration;
 import com.campus.activity.mapper.ActivityMapper;
+import com.campus.activity.mapper.OrganizerMapper;
+import com.campus.activity.mapper.RegistrationMapper;
+import com.campus.activity.vo.ActivityVO;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,15 +20,19 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class ActivityService {
     private final ActivityMapper activityMapper;
+    private final OrganizerMapper organizerMapper;
+    private final RegistrationMapper registrationMapper;
 
-    public List<Activity> list(String keyword, String category, String status, Long organizerId) {
+    public List<ActivityVO> list(String keyword, String category, String status, Long organizerId) {
         LambdaQueryWrapper<Activity> query = new LambdaQueryWrapper<>();
         query.like(StringUtils.hasText(keyword), Activity::getActivityTitle, keyword)
                 .eq(StringUtils.hasText(category), Activity::getCategory, category)
-                .eq(StringUtils.hasText(status), Activity::getActivityStatus, status)
                 .eq(organizerId != null, Activity::getOrganizerId, organizerId)
                 .orderByDesc(Activity::getStartTime);
-        return activityMapper.selectList(query);
+        return activityMapper.selectList(query).stream()
+                .map(this::toVO)
+                .filter(activity -> !StringUtils.hasText(status) || status.equals(activity.getActivityStatus()))
+                .toList();
     }
 
     public Activity detail(Long id) {
@@ -32,6 +41,10 @@ public class ActivityService {
             throw new BusinessException("活动不存在");
         }
         return activity;
+    }
+
+    public ActivityVO detailVO(Long id) {
+        return toVO(detail(id));
     }
 
     public Activity create(Activity activity, AuthUser user) {
@@ -49,7 +62,8 @@ public class ActivityService {
     public Activity update(Long id, Activity input, AuthUser user) {
         Activity activity = detail(id);
         assertOrganizerOwner(activity, user);
-        if ("ended".equals(activity.getActivityStatus()) || "cancelled".equals(activity.getActivityStatus())) {
+        String computedStatus = computeStatus(activity, LocalDateTime.now());
+        if ("ended".equals(computedStatus) || "cancelled".equals(computedStatus)) {
             throw new BusinessException("已结束或已取消活动不能修改");
         }
         input.setActivityId(id);
@@ -95,6 +109,74 @@ public class ActivityService {
         return activity;
     }
 
+    public boolean isRegistrationOpen(Activity activity, LocalDateTime now) {
+        return "approved".equals(activity.getAuditStatus())
+                && !"cancelled".equals(activity.getActivityStatus())
+                && !now.isBefore(activity.getRegisterStartTime())
+                && !now.isAfter(activity.getRegisterEndTime());
+    }
+
+    public boolean isCheckinOpen(Activity activity, LocalDateTime now) {
+        return "approved".equals(activity.getAuditStatus())
+                && !"cancelled".equals(activity.getActivityStatus())
+                && !now.isBefore(activity.getStartTime().minusMinutes(30))
+                && !now.isAfter(activity.getEndTime());
+    }
+
+    public String computeStatus(Activity activity, LocalDateTime now) {
+        if ("cancelled".equals(activity.getActivityStatus())) {
+            return "cancelled";
+        }
+        if ("draft".equals(activity.getActivityStatus())) {
+            return "draft";
+        }
+        if (!"approved".equals(activity.getAuditStatus())) {
+            return "pending_review";
+        }
+        if (now.isAfter(activity.getEndTime())) {
+            return "ended";
+        }
+        if (!now.isBefore(activity.getStartTime()) && !now.isAfter(activity.getEndTime())) {
+            return "ongoing";
+        }
+        if (now.isAfter(activity.getRegisterEndTime())) {
+            return "registration_closed";
+        }
+        if (!now.isBefore(activity.getRegisterStartTime()) && !now.isAfter(activity.getRegisterEndTime())) {
+            return "registering";
+        }
+        return "published";
+    }
+
+    public ActivityVO toVO(Activity activity) {
+        ActivityVO vo = ActivityVO.from(activity);
+        Organizer organizer = organizerMapper.selectById(activity.getOrganizerId());
+        if (organizer != null) {
+            vo.setOrganizerName(organizer.getOrganizerName());
+        }
+        long registrationCount = registrationMapper.selectCount(new LambdaQueryWrapper<Registration>()
+                .eq(Registration::getActivityId, activity.getActivityId())
+                .eq(Registration::getRegistrationStatus, "registered"));
+        vo.setRegistrationCount(registrationCount);
+        vo.setRemainingCapacity(Math.max(0, activity.getCapacity() - (int) registrationCount));
+        vo.setActivityStatus(computeStatus(activity, LocalDateTime.now()));
+        vo.setStatusText(toStatusText(vo.getActivityStatus()));
+        return vo;
+    }
+
+    public void assertOrganizerOwner(Activity activity, AuthUser user) {
+        requireRole(user, "organizer");
+        if (!activity.getOrganizerId().equals(user.getId())) {
+            throw new BusinessException("只能管理自己发布的活动");
+        }
+    }
+
+    public void requireRole(AuthUser user, String role) {
+        if (!role.equals(user.getRole())) {
+            throw new BusinessException("当前角色无权限执行该操作");
+        }
+    }
+
     private void validateActivity(Activity activity) {
         if (activity.getEndTime() == null || activity.getStartTime() == null
                 || !activity.getEndTime().isAfter(activity.getStartTime())) {
@@ -109,16 +191,17 @@ public class ActivityService {
         }
     }
 
-    public void assertOrganizerOwner(Activity activity, AuthUser user) {
-        requireRole(user, "organizer");
-        if (!activity.getOrganizerId().equals(user.getId())) {
-            throw new BusinessException("只能管理自己发布的活动");
-        }
-    }
-
-    public void requireRole(AuthUser user, String role) {
-        if (!role.equals(user.getRole())) {
-            throw new BusinessException("当前角色无权限执行该操作");
-        }
+    private String toStatusText(String status) {
+        return switch (status == null ? "" : status) {
+            case "draft" -> "草稿";
+            case "published" -> "已发布";
+            case "registering" -> "报名中";
+            case "registration_closed" -> "报名截止";
+            case "ongoing" -> "进行中";
+            case "ended" -> "已结束";
+            case "cancelled" -> "已取消";
+            case "pending_review" -> "待审核";
+            default -> status;
+        };
     }
 }

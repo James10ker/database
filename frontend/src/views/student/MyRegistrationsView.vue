@@ -7,12 +7,16 @@
     <div class="panel">
       <el-table :data="rows">
         <el-table-column prop="registrationId" label="报名编号" width="110" />
-        <el-table-column prop="activityId" label="活动编号" width="110" />
+        <el-table-column prop="activityTitle" label="活动名称" min-width="220" />
         <el-table-column prop="registrationTime" label="报名时间" min-width="180" />
-        <el-table-column prop="registrationStatus" label="状态" width="120" />
+        <el-table-column label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="row.registrationStatus === 'registered' ? 'success' : 'info'">{{ row.statusText }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
-            <el-button size="small" type="danger" @click="cancel(row.registrationId)">取消</el-button>
+            <el-button size="small" type="danger" :disabled="row.registrationStatus !== 'registered'" @click="cancel(row.registrationId)">取消</el-button>
           </template>
         </el-table-column>
       </el-table>
